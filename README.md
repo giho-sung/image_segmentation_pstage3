@@ -3,7 +3,7 @@
 
 ## 시작하기
 - 코드를 clone한 후 google drive에 업로드
-- 데이터를 다운받은 후, data 폴더에 넣기
+- dataset을 다운 후, data 폴더에 넣기
 
 파일 구조
 ```
@@ -47,3 +47,36 @@ wandb로 학습 모니터링을 수행하기 위함
 config_path = <config.json path>
 train_config_path = <config.json path>
 ```
+
+## config.json
+파일의 속성들
+
+### 경로 속성
+- dataset_dir
+- saved_inference_config_path
+- saved_dir
+- submission_dir
+
+### 학습 관련 속성
+- dataset
+- train_augmentation
+- val_augmentation
+- test_augmentation
+- model
+- criterion
+- optimizer
+- scheduler (추가 예정)
+- lr
+- batch_size
+- random_seed
+- epochs
+- val_every
+
+### 학습 모니터링 관련 속성
+- is_wandb
+- wandb_project_name
+- wandb_group
+- wandb_experiment_name
+
+### 자동 제출 관련 속성
+- submission_user_key (설정해야 자동 submission이 됨)
