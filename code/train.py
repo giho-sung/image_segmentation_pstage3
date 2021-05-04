@@ -99,7 +99,7 @@ def train(args, model, data_loader, val_loader, criterion, optimizer, device, ca
             if args.is_wandb:
                 wandb.log({'val-loss':avrg_loss, 'val-IoU':mIoU}, commit=False)
                 # 클래스별 IoU
-                val_iou_df['IoU_'+str(epoch)] = IoU_per_class
+                val_iou_df[epoch + 1] = IoU_per_class
                 # wandb.log({'val-iou':wandb.Table(dataframe=val_iou_df)}, commit=False)
                 fig, ax = plt.subplots(figsize=(20,10))
                 # 
@@ -112,6 +112,7 @@ def train(args, model, data_loader, val_loader, criterion, optimizer, device, ca
                 sns.lineplot(data=val_iou_fig_df, x='epoch', y='IoU', hue='Category',
                             ax=ax)
                 ax.set_ylim(0,1)
+                ax.set_xticks(list(range(1, epoch + 2)))
                 wandb.log({'val-iou':wandb.Image(fig)}, commit=False)
                 
                 # keep lowest n file and plot

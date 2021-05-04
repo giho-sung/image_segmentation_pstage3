@@ -27,7 +27,7 @@
 
 - image_segmentation_experiments_flatform.ipynb를 colab으로 열기
 ```
-# !pip install git+https://github.com/rwightman/pytorch-image-models.git
+!pip install git+https://github.com/rwightman/pytorch-image-models.git
 !pip install -U git+https://github.com/qubvel/segmentation_models.pytorch
 !pip install wandb -qqq
 !pip install -r requirements.txt
@@ -47,5 +47,3 @@ wandb로 학습 모니터링을 수행하기 위함
 config_path = <config.json path>
 train_config_path = <config.json path>
 ```
-
- 
