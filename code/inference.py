@@ -26,7 +26,7 @@ def load_model(device, num_classes, args):
     model = model_module(num_classes=num_classes, args=args)  
     
     # best model 저장된 경로
-    model_path = os.path.join(args.saved_dir, args.model + '_best_model.pt')
+    model_path = os.path.join(args.saved_dir, args.saved_model_name + '.pt')
     
     # best model 불러오기
     checkpoint = torch.load(model_path, map_location=device)
@@ -79,7 +79,7 @@ def inference(model, data_loader, device):
 def save_submission_csv(submission, args):
 
     # submission.csv로 저장
-    output_file = args.model + '.csv'
+    output_file = args.saved_model_name + '.csv'
     output_file_path = os.path.join(args.submission_dir, output_file)
     submission.to_csv(output_file_path, index=False)
     
@@ -140,13 +140,16 @@ if __name__=='__main__':
     parser.add_argument('--encoder', type=str, default='resnet101', help='encoder (default: resnet101)')
     parser.add_argument('--criterion', type=str, default='cross_entropy', help='criterion (default: cross_entropy)')
     parser.add_argument('--optimizer', type=str, default='Adam', help='optimizer (default: Adam)')
-    parser.add_argument('--lr', type=int, default=1e-4, help='lr (default: 1e-4)')
+    parser.add_argument('--lr', type=float, default=1e-4, help='lr (default: 1e-4)')
     parser.add_argument('--scheduler', type=str, default='', help='scheduler (default: '')')
+    parser.add_argument('--scheduler_parameter', type=dict, default={}, help='scheduler_parameter (default: {})')        
+        
     parser.add_argument('--batch_size', type=int, default=16, help='batch_size (default: 16)')
     parser.add_argument('--random_seed', type=int, default=21, help='random_seed (default: 21)')
     parser.add_argument('--epochs', type=int, default=20, help='epochs (default: 20)')
     parser.add_argument('--val_every', type=int, default=1, help='val_every (default: 1)')
     
+    parser.add_argument('--saved_model_name', type=str, default='saved_model_best', help='saved_model_name (default: saved_model_best)')
     parser.add_argument('--saved_inference_config_path', type=str, default='/opt/ml/code/inference_config.json', help='saved_inference_config_path (default: /opt/ml/code/inference_config.json)')
     parser.add_argument('--saved_dir', type=str, default='/opt/ml/code/saved', help='saved_dir (default: /opt/ml/code/saved)')
     parser.add_argument('--submission_dir', type=str, default='/opt/ml/code/submission', help='submission_dir (default: /opt/ml/code/submission)')
@@ -176,13 +179,16 @@ if __name__=='__main__':
     # add variable to argments for record
     d = vars(args)
 
-      
+    print('=' * 15 + 'arguments for inference' + '=' *15)  
+  
     print(args)
     
     
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
-    
+
+    print('=' * 15 + 'Inference setting' + '=' *15)  
+
     dataset_module = getattr(import_module("dataset"), args.dataset)
     # -- dataset
     
@@ -219,6 +225,8 @@ if __name__=='__main__':
     
     # TODO image show
     
+    print('=' * 15 + 'Inference started' + '=' *15)  
+
     # -- inference
     file_names, preds = inference(model, test_loader, device)
     
@@ -236,15 +244,18 @@ if __name__=='__main__':
                                        ignore_index=True)
         
     submission, output_file_path = save_submission_csv(submission, args)
+    print(f'submission file saved on {output_file_path}')
     
     # auto submission
-    desc = f'''model:{args.model}, encoder:{args.encoder}, loss:{args.criterion}, optimizer:{args.optimizer}, lr:{args.lr}, epoch:{args.best_epoch}/{args.epochs}, best mIoU:{args.best_mIoU}, batch size:{args.batch_size}\n
+    desc = f'''model:{args.model}, encoder:{args.encoder}, loss:{args.criterion}, optimizer:{args.optimizer}, scheduler:{args.scheduler} lr:{args.lr}, epoch:{args.best_epoch}/{args.epochs}, best mIoU:{args.best_mIoU}, batch size:{args.batch_size}\n
             train augmentation:{args.train_augmentation}, val augmentation:{args.val_augmentation}, test augmentation:{args.test_augmentation} '''  # "DECONV not pretrained 20 epoch and no augmentation"  # 수정 필요 : 파일에 대한 설명
     user_key = args.submission_user_key
     # -- submit to server
-    submit(user_key, output_file_path, desc)
+    if user_key != '':
+        submit(user_key, output_file_path, desc)
+    else:
+        print(f'skip submitting on the web. we need "submission_user_key" setting on config file')
     
-    print(f'submission path: {output_file_path}')
     print('ended inference and submission')
     
 

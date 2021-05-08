@@ -19,20 +19,35 @@
 |-- code
    |-- saved
    |-- submission
-   config.json
+      sample_submission.csv
+   requirements.txt
+   config1_1.json
+   config1_2.json
    image_segmentation_experiments_flatform.ipynb
    dataset.py
+   model.py
+   loss.py
+   train.py
+   inference.py
+   utils.py
    ...
 ```
 
 - image_segmentation_experiments_flatform.ipynb를 colab으로 열기
+
+## image_segmentation_experiments_flatform.ipynb 사용법
+### config 파일 설정
+- 각각의 config 파일(config1_1.json, config1_2.json 등)은 하나의 실험에 대응됨
+- 원하는 학습, 저장, 모니터링 속성을 config 파일에서 설정 후, image_segmentation_experiments_flatform.ipynb의 내부 변수 <config 파일 path>(config_path1_1 or config_path1_2 등)를 수정
+
+### Command Line Interface(CLI) 기능
 ```
-!pip install git+https://github.com/rwightman/pytorch-image-models.git
 !pip install -U git+https://github.com/qubvel/segmentation_models.pytorch
 !pip install wandb -qqq
 !pip install -r requirements.txt
 ```
-위 코드 실행 후 회색 버튼의 런타임 초기화 수행(library 충돌 문제로 런타임 초기화 후 실행해야 함)
+위 코드 실행 후 회색 버튼의 `RESTART RUNTIME` 눌러 runtime 초기화 수행
+(library 충돌 문제로 런타임 초기화 후 코드를 다시 실행해야 함)
 
 - wandb 로그인 
 wandb로 학습 모니터링을 수행하기 위함
@@ -40,37 +55,45 @@ wandb로 학습 모니터링을 수행하기 위함
 !wandb login
 ```
 
-- config.json를 수정하고 후, image_segmentation_experiments_flatform.ipynb 내부에 config_path를 수정해야 함. 아래 흩어져 있는 4줄의 코드를 수정해야 함
+- config 파일 설정 후, 그 path를 arguments로 넘겨주어 학습 및 추론을 수행
 ```
-!python train.py --from_only_config True --config_path <config.json path>
-!python inference.py --from_only_config True --config_path <config.json path>
-config_path = <config.json path>
-train_config_path = <config.json path>
+<config 파일 path> = '/config/file/path/you/set'
+!python train.py --from_only_config True --config_path $<config 파일 path>
+!python inference.py --from_only_config True --config_path $<config 파일 path>
 ```
+
+### Line by line 기능
+- Jupyter notebook training, Jupyter notebook inference 섹션에서 block 단위로 실행하면 training 및 inference & submission 기능을 이용할 수 있음
 
 ## config.json
 파일의 속성들
 
-### 경로 속성
-- dataset_dir
-- saved_inference_config_path
-- saved_dir
-- submission_dir
-
 ### 학습 관련 속성
 - dataset
+- dataset_dir
 - train_augmentation
 - val_augmentation
 - test_augmentation
 - model
+- encoder
 - criterion
 - optimizer
-- scheduler (추가 예정)
 - lr
+- scheduler
+- scheduler_parameter
 - batch_size
 - random_seed
 - epochs
 - val_every
+
+### 저장 관련 속성
+- saved_model_name
+- saved_inference_config_path
+- saved_dir
+
+### 제출 관련 속성
+- submission_dir
+- submission_user_key
 
 ### 학습 모니터링 관련 속성
 - is_wandb
@@ -78,5 +101,17 @@ train_config_path = <config.json path>
 - wandb_group
 - wandb_experiment_name
 
-### 자동 제출 관련 속성
-- submission_user_key (설정해야 자동 submission이 됨)
+### config 파일 속성 설정 주의 사항
+학습시 `saved_model_name`, `wandb_group`를 실험에 맞춰 설정
+
+### config 파일 별 주의사항
+각 config 파일마다 `saved_inference_config_path`를 다르게 설정하여야 함
+
+
+## 학습 모니터링 기능
+- train loss
+- learning rate
+- validation loss
+- validation mIoU
+
+- validation에서 각 class별 IoU

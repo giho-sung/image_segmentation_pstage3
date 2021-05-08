@@ -48,7 +48,7 @@ def seed_everything(seed):
 
 
 # it saves best mIoU
-def train(args, model, data_loader, val_loader, criterion, optimizer, device, category_names, val_dataset):
+def train(args, model, data_loader, val_loader, criterion, optimizer, scheduler, device, category_names, val_dataset):
     num_epochs = args.epochs
     val_every = args.val_every
     saved_dir = args.saved_dir
@@ -57,7 +57,6 @@ def train(args, model, data_loader, val_loader, criterion, optimizer, device, ca
     print('Start training..')
     # best_loss = np.inf
     bset_mIoU = -1
-    val_iou_df = pd.DataFrame({'category':category_names})
     for epoch in range(num_epochs):
         model.train()
         for step, (images, masks, _) in enumerate(data_loader):
@@ -83,6 +82,10 @@ def train(args, model, data_loader, val_loader, criterion, optimizer, device, ca
                 
             if args.is_wandb:
                 wandb.log({"train-loss":loss.item()})
+                
+        
+        wandb.log({'learning rate': optimizer.param_groups[0]["lr"]})       
+        scheduler.step() # scheduler step per an epoch
         
         # validation 주기에 따른 loss 출력 및 best model 저장
         if (epoch + 1) % val_every == 0:
@@ -94,26 +97,11 @@ def train(args, model, data_loader, val_loader, criterion, optimizer, device, ca
                 bset_mIoU = mIoU
                 # best_loss = avrg_loss
                 args.best_mIoU = mIoU
-                save_model(model, saved_dir, file_name=args.model + '_best_model.pt')
+                save_model(model, saved_dir, file_name=args.saved_model_name + '.pt')
             
             if args.is_wandb:
                 wandb.log({'val-loss':avrg_loss, 'val-IoU':mIoU}, commit=False)
                 # 클래스별 IoU
-                val_iou_df[epoch + 1] = IoU_per_class
-                # wandb.log({'val-iou':wandb.Table(dataframe=val_iou_df)}, commit=False)
-                fig, ax = plt.subplots(figsize=(20,10))
-                # 
-                val_iou_fig_df = val_iou_df.fillna(0)
-                val_iou_fig_df.set_index('category', inplace=True)
-                val_iou_fig_df = val_iou_fig_df.T
-                val_iou_fig_df = val_iou_fig_df.reset_index()
-                val_iou_fig_df = val_iou_fig_df.rename(columns = {'index':'epoch'})
-                val_iou_fig_df = val_iou_fig_df.melt('epoch', var_name='Category', value_name='IoU')
-                sns.lineplot(data=val_iou_fig_df, x='epoch', y='IoU', hue='Category',
-                            ax=ax)
-                ax.set_ylim(0,1)
-                ax.set_xticks(list(range(1, epoch + 2)))
-                wandb.log({'val-iou':wandb.Image(fig)}, commit=False)
                 
                 # keep lowest n file and plot
                 keep_n = 10
@@ -123,8 +111,17 @@ def train(args, model, data_loader, val_loader, criterion, optimizer, device, ca
                 fig_shape = (int(np.ceil(keep_n / 2)), 2 * 3)
                 fig, axis = plt.subplots(nrows=fig_shape[0], ncols=fig_shape[1], figsize=(fig_shape[0] * 5, fig_shape[1] * 3))
                 
+                # iou to value
+                IoU_per_class[np.isnan(IoU_per_class)] = 0
+                category_names
+                category_iou_dict = {}
+                for category_name, iou in zip(category_names, IoU_per_class):
+                    category_iou_dict[category_name] = iou
+                wandb.log(category_iou_dict, commit=False)
                 
-                # validation dataset module로 image와 mask 불러오기
+                
+                
+                #  figure prediction of last trained model 
                 for i in range(fig_shape[0]):
                     
                     image_id, mIoU = image_id_with_low_mIoU[i * 2 + 0]
@@ -159,14 +156,11 @@ def train(args, model, data_loader, val_loader, criterion, optimizer, device, ca
                     axis[i][5].set_title(f'{file_name} predicted mask')
                     axis[i][5].imshow(predicted_mask)            
                     ######
-                wandb.log({f'val-figure:{epoch + 1}':wandb.Image(fig)})
+                wandb.log({f'val-last-figure':wandb.Image(fig)})
                 
                 
                 
-        
-        
-        # plot val_iou_df
-        # print(val_iou_df)
+
 
                 
 def validation(epoch, model, data_loader, criterion, device):
@@ -229,8 +223,7 @@ if __name__=='__main__':
     print('pytorch version: {}'.format(torch.__version__))
     print('GPU 사용 가능 여부: {}'.format(torch.cuda.is_available()))
 
-    print(torch.cuda.get_device_name(0))
-    print(torch.cuda.device_count())
+    print(f'Device name:{torch.cuda.get_device_name(0)}, The number of usable GPU:{torch.cuda.device_count()}')
     
     parser = argparse.ArgumentParser()
     
@@ -253,13 +246,16 @@ if __name__=='__main__':
     parser.add_argument('--encoder', type=str, default='resnet101', help='encoder (default: resnet101)')
     parser.add_argument('--criterion', type=str, default='cross_entropy', help='criterion (default: cross_entropy)')
     parser.add_argument('--optimizer', type=str, default='Adam', help='optimizer (default: Adam)')
-    parser.add_argument('--lr', type=int, default=1e-4, help='lr (default: 1e-4)')
+    parser.add_argument('--lr', type=float, default=1e-4, help='lr (default: 1e-4)')
     parser.add_argument('--scheduler', type=str, default='', help='scheduler (default: '')')
+    parser.add_argument('--scheduler_parameter', type=dict, default={}, help='scheduler_parameter (default: {})')        
+        
     parser.add_argument('--batch_size', type=int, default=16, help='batch_size (default: 16)')
     parser.add_argument('--random_seed', type=int, default=21, help='random_seed (default: 21)')
     parser.add_argument('--epochs', type=int, default=20, help='epochs (default: 20)')
     parser.add_argument('--val_every', type=int, default=1, help='val_every (default: 1)')
     
+    parser.add_argument('--saved_model_name', type=str, default='saved_model_best', help='saved_model_name (default: saved_model_best)')
     parser.add_argument('--saved_inference_config_path', type=str, default='/opt/ml/code/inference_config.json', help='saved_inference_config_path (default: /opt/ml/code/inference_config.json)')
     parser.add_argument('--saved_dir', type=str, default='/opt/ml/code/saved', help='saved_dir (default: /opt/ml/code/saved)')
     parser.add_argument('--submission_dir', type=str, default='/opt/ml/code/submission', help='submission_dir (default: /opt/ml/code/submission)')
@@ -289,8 +285,9 @@ if __name__=='__main__':
     d = vars(args)
     d['best_epoch'] = -1
     d['best_mIoU'] = -1
-      
+    print('=' * 15 + 'arguments' + '=' *15)  
     print(args)
+    
     
     if args.is_wandb:
         if args.wandb_experiment_name == "":
@@ -300,7 +297,7 @@ if __name__=='__main__':
                   name=args.wandb_experiment_name
                   )
     
-    
+    print('=' * 15 + 'training setting' + '=' *15)
     seed_everything(args.random_seed)
 
     # -- setting
@@ -354,7 +351,7 @@ if __name__=='__main__':
                                                batch_size=args.batch_size,
                                                shuffle=True,
                                                pin_memory=use_cuda,
-                                               num_workers=4,
+                                               num_workers=3,
                                                drop_last=True,
                                                collate_fn=collate_fn)
 
@@ -362,14 +359,14 @@ if __name__=='__main__':
                                              batch_size=args.batch_size,
                                              shuffle=False,
                                              pin_memory=use_cuda,
-                                             num_workers=4,
+                                             num_workers=3,
                                              drop_last=True,
                                              collate_fn=collate_fn)
 
     test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                               batch_size=args.batch_size,
                                               pin_memory=use_cuda,
-                                              num_workers=4,
+                                              num_workers=3,
                                               drop_last=True,
                                               collate_fn=collate_fn)
     
@@ -397,11 +394,25 @@ if __name__=='__main__':
             lr=args.lr,
             weight_decay=1e-6
         )
-
-    train(args, model, train_loader, val_loader, criterion, optimizer, device, category_names, val_dataset)
     
-    # save args for inference config
+    # Scheduler 정의
+    if args.scheduler != '':
+        schedul_module = getattr(import_module("torch.optim.lr_scheduler"), args.scheduler) # defualt None
+        scheduler = schedul_module(
+                    optimizer, 
+                    **args.scheduler_parameter
+                    )
+    else:
+        # scheduler which do not anything when scheduler.step()
+        schedul_module = getattr(import_module("torch.optim.lr_scheduler"),'LambdaLR')
+        scheduler = schedul_module(optimizer, lr_lambda=[lambda x: 1])
+    
+    print('=' * 15 + 'training started' + '=' *15)
+    train(args, model, train_loader, val_loader, criterion, optimizer, scheduler, device, category_names, val_dataset)
+    print('=' * 15 + 'train ended' + '=' *15)
+    
+    # save inference config file from the results of training
     with open(args.saved_inference_config_path, 'w') as f_json:
         json.dump(vars(args), f_json)
 
-    
+    print('=' * 7 + f'saved inference configuration on {args.saved_inference_config_path}' + '=' *7)

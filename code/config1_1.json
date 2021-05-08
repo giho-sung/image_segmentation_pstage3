@@ -1,27 +1,30 @@
 {
     "dataset" : "CustomDataset",
     "dataset_dir" : "/content/drive/MyDrive/boostcamp/pstage3/data",
-    "train_augmentation" : "BaseAugmentation",
+    "train_augmentation" : "CustomAugmentation",
     "val_augmentation" : "BaseAugmentation",
     "test_augmentation" : "TestAugmentation",
     "model" : "FPN",
-    "encoder" : "mobilenet_v2",
-    "criterion" : "cross_entropy",
+    "encoder" : "timm-efficientnet-b0",
+    "criterion" : "label_smoothing",
     "optimizer" : "Adam",
     "lr" : 1e-4,
-    "scheduler" : "",
-    "batch_size" : 32,
+    "scheduler" : "OneCycleLR",
+    "scheduler_parameter" : {"max_lr": 1e-3, "steps_per_epoch":10, "epochs": 10},
+    "batch_size" : 16,
     "random_seed" : 21,
-    "epochs" : 50,
+    "epochs" : 100,
     "val_every" : 1,
 
-    "saved_inference_config_path" : "/content/drive/MyDrive/boostcamp/pstage3/code/inference_config.json",
+    "saved_model_name" : "FPN_efficientnet-b0_OneCycleLR_label_smoothing_loss_best",
+    "saved_inference_config_path" : "/content/drive/MyDrive/boostcamp/pstage3/code/inference_config1_1.json",
     "saved_dir" : "/content/drive/MyDrive/boostcamp/pstage3/code/saved",
+    
     "submission_dir" : "/content/drive/MyDrive/boostcamp/pstage3/code/submission",
     "submission_user_key" : "",
 
     "is_wandb" : 1,
     "wandb_project_name" : "pstage3_image_segmentation",
-    "wandb_group" : "experiments_group_name",
+    "wandb_group" : "OneCycleLR_label_smoothing_loss_test",
     "wandb_experiment_name" : ""
 }

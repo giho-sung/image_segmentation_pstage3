@@ -35,6 +35,33 @@ class TestAugmentation:
     def __call__(self, **kwargs):
         return self.transform(**kwargs)
 
+class CustomAugmentation:
+    def __init__(self):
+        self.transform = A.Compose([
+                                A.Rotate(limit=30, 
+                                         p=0.5),
+                                A.HorizontalFlip(p=0.5),
+                                A.RandomResizedCrop(height=512, width=512,
+                                                   scale=(0.3, 1.0), ratio=(0.75, 1.33),
+                                                   p=0.5),
+                                A.ElasticTransform(p=0.3),
+                                A.OpticalDistortion(p=0.2),
+                                A.MotionBlur(p=0.1),
+                                A.RandomBrightness(limit=0.1,
+                                                  p=0.2),
+                                A.RandomContrast(limit=0.1,
+                                                p=0.2),
+                                A.ColorJitter(brightness=0, contrast=0, saturation=0, hue=0.1,
+                                             p=0.2),
+                              ToTensorV2()
+                            ])
+        
+    def __call__(self, **kwargs):
+        return self.transform(**kwargs)    
+    
+    
+
+
     
 class CustomDataset(data.Dataset):
     """COCO format"""

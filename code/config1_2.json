@@ -1,0 +1,30 @@
+{
+    "dataset" : "CustomDataset",
+    "dataset_dir" : "/content/drive/MyDrive/boostcamp/pstage3/data",
+    "train_augmentation" : "BaseAugmentation",
+    "val_augmentation" : "BaseAugmentation",
+    "test_augmentation" : "TestAugmentation",
+    "model" : "FPN",
+    "encoder" : "timm-efficientnet-b0",
+    "criterion" : "weighted_cross_entropy_with_UILoss",
+    "optimizer" : "Adam",
+    "lr" : 6e-3,
+    "scheduler" : "CosineAnnealingLR",
+    "scheduler_parameter" : {"T_max":20, "eta_min":1e-7},
+    "batch_size" : 16,
+    "random_seed" : 21,
+    "epochs" : 100,
+    "val_every" : 1,
+
+    "saved_model_name" : "FPN_efficientnet-b0_CosineAnnealingLR_weighted_cross_entropy_with_UILoss_best",
+    "saved_inference_config_path" : "/content/drive/MyDrive/boostcamp/pstage3/code/inference_config1_1.json",
+    "saved_dir" : "/content/drive/MyDrive/boostcamp/pstage3/code/saved",
+    
+    "submission_dir" : "/content/drive/MyDrive/boostcamp/pstage3/code/submission",
+    "submission_user_key" : "",
+
+    "is_wandb" : 1,
+    "wandb_project_name" : "pstage3_image_segmentation",
+    "wandb_group" : "CosineAnnealingLR_weighted_cross_entropy_with_UILoss_test",
+    "wandb_experiment_name" : ""
+}
