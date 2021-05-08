@@ -108,10 +108,13 @@ wandb로 학습 모니터링을 수행하기 위함
 각 config 파일마다 `saved_inference_config_path`를 다르게 설정하여야 함
 
 
-## 학습 모니터링 기능
+## 학습 모니터링 기능 in wandb
 - train loss
 - learning rate
 - validation loss
 - validation mIoU
+![trainig, validation info visualization](./sample_images/training_validation_visualization.jpg?raw=true)
 
 - validation에서 각 class별 IoU
+![validation IoU per class visualization1](./sample_images/class_IoU_visualization1.jpg?raw=true)
+![validation IoU per class visualization2](./sample_images/class_IoU_visualization2.jpg?raw=true)
